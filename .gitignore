@@ -1,0 +1,3 @@
+sync-server/data/
+*.log
+.DS_Store

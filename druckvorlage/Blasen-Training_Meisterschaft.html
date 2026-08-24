@@ -1,0 +1,501 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blasen-Training Meisterschaft</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --night:#1B1233;
+  --night2:#2C1C52;
+  --ember:#FF7A18;
+  --lava:#E62E0B;
+  --gold:#FFC93C;
+  --aqua:#16C0B0;
+  --paper:#FFF6E9;
+  --ink:#241A3D;
+  --line:#C9BBA6;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:"Nunito",-apple-system,Segoe UI,Roboto,sans-serif;
+  color:var(--ink);
+  background:
+    radial-gradient(900px 500px at 15% -5%, #4A2570 0%, transparent 60%),
+    radial-gradient(700px 400px at 95% 10%, #7A1F3D 0%, transparent 55%),
+    var(--night);
+  padding:18px 14px 70px;
+  -webkit-text-size-adjust:100%;
+}
+.sheet{max-width:960px;margin:0 auto}
+
+/* ---------- Werkzeugleiste ---------- */
+.tools{
+  position:sticky;top:10px;z-index:40;
+  display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-bottom:14px;
+}
+.tools button{
+  font-family:"Nunito",sans-serif;font-weight:900;font-size:13px;
+  letter-spacing:.02em;color:var(--paper);background:rgba(255,255,255,.09);
+  border:2px solid rgba(255,255,255,.28);border-radius:999px;
+  padding:9px 16px;cursor:pointer;backdrop-filter:blur(6px);
+}
+.tools button:hover{background:rgba(255,255,255,.18)}
+.tools button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.tools .primary{background:var(--ember);border-color:#ffb46b;color:#26150a}
+
+/* ---------- Karten ---------- */
+.card{
+  background:var(--paper);
+  border:3px solid var(--ink);
+  border-radius:20px;
+  box-shadow:0 14px 0 -4px rgba(0,0,0,.35);
+  padding:22px 22px 24px;
+  margin-bottom:22px;
+}
+
+/* ---------- Titel ---------- */
+.hero{position:relative;overflow:hidden;padding-top:26px}
+.eyebrow{
+  font-family:"Bungee",cursive;font-size:11px;letter-spacing:.18em;
+  color:var(--lava);margin:0 0 6px;
+}
+h1{
+  font-family:"Bungee",cursive;font-weight:400;line-height:.98;
+  font-size:clamp(26px,6.2vw,46px);margin:0 0 10px;color:var(--ink);
+  text-transform:uppercase;
+}
+h1 .fire{
+  background:linear-gradient(180deg,var(--gold),var(--ember) 55%,var(--lava));
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.lead{font-size:15.5px;line-height:1.55;max-width:56ch;margin:0}
+.lead b{background:linear-gradient(180deg,transparent 62%,#FFD98A 62%)}
+.crest{position:absolute;right:-6px;top:8px;width:120px;opacity:.95}
+
+/* ---------- Aufgaben ---------- */
+h2{
+  font-family:"Bungee",cursive;font-weight:400;text-transform:uppercase;
+  font-size:15px;letter-spacing:.06em;margin:0 0 14px;color:var(--ink);
+}
+.tasks{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.task{
+  border:2.5px solid var(--ink);border-radius:14px;padding:12px;
+  background:#fff;position:relative;
+}
+.task .no{
+  font-family:"Bungee",cursive;font-size:11px;color:#fff;background:var(--ink);
+  border-radius:8px;padding:2px 7px;position:absolute;top:-11px;left:10px;
+}
+.task h3{font-family:"Bungee",cursive;font-weight:400;font-size:12.5px;margin:8px 0 5px;letter-spacing:.02em}
+.task p{margin:0;font-size:12.5px;line-height:1.4;color:#4A3F63}
+.task svg{width:30px;height:30px;display:block}
+
+/* ---------- Arena ---------- */
+.arena-head{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.rank{
+  font-family:"Bungee",cursive;font-size:12px;letter-spacing:.05em;
+  padding:7px 14px;border-radius:999px;color:#fff;background:var(--ink);
+}
+.arena-head .name{font-family:"Bungee",cursive;font-size:16px;text-transform:uppercase}
+.arena-head .week{font-size:12.5px;font-weight:900;color:#6B5C8A;letter-spacing:.08em}
+
+.board{display:flex;gap:18px;align-items:flex-start}
+.scroller{flex:1;overflow-x:auto;padding-bottom:4px}
+.grid{
+  display:grid;
+  grid-template-columns:150px repeat(7,minmax(50px,1fr));
+  min-width:560px;
+  gap:5px;
+}
+.gh{
+  font-family:"Bungee",cursive;font-size:10.5px;text-align:center;
+  padding:7px 2px;border-radius:8px;background:var(--ink);color:var(--paper);
+}
+.gh.corner{background:transparent;color:transparent}
+.tl{
+  display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:900;
+  padding:6px 8px;border-radius:9px;background:#fff;border:2px solid var(--ink);
+  line-height:1.15;
+}
+.tl svg{width:19px;height:19px;flex:none}
+.cell{display:flex;align-items:center;justify-content:center}
+
+/* Häkchen-Feld */
+.tick{
+  width:38px;height:38px;border:2.5px solid var(--ink);border-radius:10px;
+  background:#fff;cursor:pointer;padding:0;display:grid;place-items:center;
+  transition:transform .12s ease, background .12s ease;
+}
+.tick svg{width:22px;height:22px}
+.tick .flame-fill{fill:#F0E7D6}
+.tick[aria-pressed="true"]{background:linear-gradient(180deg,var(--gold),var(--ember));transform:scale(1.04)}
+.tick[aria-pressed="true"] .flame-fill{fill:var(--lava)}
+.tick:focus-visible{outline:3px solid var(--aqua);outline-offset:2px}
+
+/* Tages-Ball */
+.ball{
+  width:42px;height:42px;border-radius:50%;border:3px solid var(--ink);
+  background:#fff;cursor:pointer;padding:0;display:grid;place-items:center;
+  font-family:"Bungee",cursive;font-size:11px;color:#D8CDBA;
+  transition:transform .15s ease;
+}
+.ball.ready{border-color:var(--ember);box-shadow:0 0 0 4px rgba(255,122,24,.25);color:var(--ember)}
+.ball[aria-pressed="true"]{
+  background:radial-gradient(circle at 34% 30%, #FFE9A8, var(--gold) 40%, var(--ember) 72%, var(--lava));
+  color:#fff;transform:scale(1.08);border-color:var(--lava);
+}
+.ball:focus-visible{outline:3px solid var(--aqua);outline-offset:3px}
+.tl.ballrow{background:#FFF0D8}
+
+/* Fackel */
+.torch{width:132px;flex:none;text-align:center}
+.torch svg{width:100%;height:auto}
+.torch .cap{
+  font-family:"Bungee",cursive;font-size:9.5px;letter-spacing:.06em;
+  display:block;margin-top:6px;color:#6B5C8A;line-height:1.5;
+}
+.band{fill:#EFE6D5;transition:fill .3s ease}
+.band.lit{fill:var(--ember)}
+
+/* Trainer-Ausweis */
+.idgrid{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:stretch}
+.fields{display:flex;flex-direction:column;justify-content:space-between;gap:12px}
+.fields label{
+  font-family:"Bungee",cursive;font-size:10.5px;letter-spacing:.05em;
+  text-transform:uppercase;color:#6B5C8A;display:block;
+}
+.fields i{display:block;height:26px;border-bottom:2.5px dotted var(--ink);margin-top:2px}
+.draw{
+  border:3px dashed var(--ink);border-radius:14px;min-height:132px;
+  display:grid;place-items:center;background:#fff;
+}
+.draw span{font-family:"Bungee",cursive;font-size:10.5px;color:#C4B9A6;letter-spacing:.05em;text-align:center;padding:0 12px}
+
+/* Belohnung */
+.reward{
+  margin-top:16px;border:3px dashed var(--lava);border-radius:14px;
+  padding:14px 16px;background:#FFF0D8;display:flex;gap:12px;align-items:center;
+}
+.reward svg{width:34px;height:34px;flex:none}
+.reward p{margin:0;font-size:12.5px;line-height:1.45;font-weight:700}
+.reward b{font-family:"Bungee",cursive;font-weight:400;font-size:12.5px;display:block;margin-bottom:2px}
+
+/* Versprechen */
+.pact p{font-size:14px;line-height:1.6;margin:0 0 18px}
+.sign{display:grid;grid-template-columns:1fr 1fr;gap:26px;margin-top:26px}
+.sign div{border-top:2.5px solid var(--ink);padding-top:7px;font-size:12px;font-weight:900}
+.sign span{display:block;font-weight:700;color:#6B5C8A;font-size:11.5px}
+
+.tally{
+  font-size:12.5px;font-weight:900;color:#6B5C8A;text-align:right;margin:8px 2px 0;
+}
+.footnote{color:rgba(255,255,255,.5);font-size:11.5px;text-align:center;max-width:52ch;margin:0 auto}
+
+@media (max-width:720px){
+  .tasks{grid-template-columns:1fr 1fr}
+  .idgrid{grid-template-columns:1fr}
+  .board{flex-direction:column-reverse;align-items:center}
+  .torch{width:96px}
+  .scroller{width:100%}
+  .crest{width:80px;opacity:.55}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ---------- DRUCK ---------- */
+@media print{
+  @page{size:A4 portrait;margin:11mm}
+  body{background:#fff;padding:0;color:#000}
+  .tools,.tally,.footnote{display:none!important}
+  .card{
+    box-shadow:none;border-width:2.5px;border-radius:16px;
+    padding:16px 18px 18px;margin-bottom:12px;background:#fff;
+    break-inside:avoid;page-break-inside:avoid;
+  }
+  .hero{padding-top:18px}
+  h1{font-size:33px}
+  .lead{font-size:13px;line-height:1.6}
+  .crest{width:104px;opacity:1}
+  .task h3{font-size:13px}
+  .task p{font-size:12px}
+  .pact p{font-size:13.5px;line-height:1.7}
+  .fields label{font-size:11px}
+  .fields i{height:22px}
+  .fields{gap:6px}
+  .idcard{padding:13px 18px 15px}
+  .idcard h2{margin-bottom:9px}
+  .draw{min-height:86px;border-width:2.5px}
+  .draw span{font-size:11px}
+  .tasks{gap:9px}
+  .task{padding:10px}
+  .pact p{font-size:12.6px;line-height:1.62}
+  .sign{margin-top:26px}
+  .sign{margin-top:34px;gap:34px}
+  .arena-head .name{font-size:19px}
+  .rank{font-size:14px;padding:9px 17px}
+  .arena{break-before:page;page-break-before:always}
+  .board{flex-direction:column;align-items:stretch;gap:12px}
+  .scroller{overflow:visible;width:100%}
+  .grid{min-width:0;gap:7px;grid-template-columns:140px repeat(7,1fr)}
+  .tick{width:68px;height:68px;border-radius:16px;border-width:3px}
+  .tick svg{width:40px;height:40px}
+  .ball{width:76px;height:76px;font-size:18px;border-width:3.5px}
+  .tl{font-size:14px;padding:8px 10px}
+  .tl svg{width:22px;height:22px}
+  .torch{width:200px;margin:4px auto 0}
+  .torch .cap{font-size:11.5px;margin-top:8px}
+  .reward{padding:18px 20px;margin-top:20px}
+  .reward p,.reward b{font-size:14px}
+  .reward svg{width:42px;height:42px}
+  .gh{background:#fff;color:#000;border:1.5px solid #000;font-size:12.5px;padding:11px 2px}
+  .gh.corner{border:none!important}
+  .tick,.ball{background:#fff!important;transform:none!important;box-shadow:none!important;color:#BFB7A6!important}
+  .tick .flame-fill{fill:#fff!important;stroke:#C9BBA6;stroke-width:6}
+  .band{fill:#fff!important;stroke:#C9BBA6;stroke-width:1}
+  .ball.ready{border-color:#000!important}
+  .reward{background:#fff}
+  .pact{break-before:auto}
+}
+</style>
+
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <linearGradient id="emberGrad" x1="0" y1="1" x2="0" y2="0">
+    <stop offset="0%" stop-color="#E62E0B"/><stop offset="55%" stop-color="#FF7A18"/><stop offset="100%" stop-color="#FFC93C"/>
+  </linearGradient>
+</defs></svg>
+<div class="sheet">
+
+  <div class="tools">
+    <button class="primary" onclick="window.print()">Drucken oder als PDF sichern</button>
+    <button id="resetBtn">Alles zurücksetzen</button>
+  </div>
+
+  <!-- ============ MISSION ============ -->
+  <section class="card hero">
+    <svg class="crest" viewBox="0 0 100 110" aria-hidden="true">
+      <defs>
+        <linearGradient id="crestGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#FFC93C"/><stop offset="55%" stop-color="#FF7A18"/><stop offset="100%" stop-color="#E62E0B"/>
+        </linearGradient>
+      </defs>
+      <path d="M50 4 L92 22 V56 C92 82 74 98 50 106 C26 98 8 82 8 56 V22 Z"
+            fill="none" stroke="#241A3D" stroke-width="5" stroke-linejoin="round"/>
+      <path d="M50 22 C40 36 46 42 44 50 C42 44 36 42 34 36 C28 46 26 56 30 66 C34 78 44 84 50 88
+               C56 84 66 78 70 66 C74 56 72 44 66 36 C64 42 58 44 56 50 C54 42 60 36 50 22 Z"
+            fill="url(#crestGrad)" stroke="#241A3D" stroke-width="3.5" stroke-linejoin="round"/>
+    </svg>
+
+    <p class="eyebrow">Trainer-Ausweis · 21 Tage</p>
+    <h1>Blasen-Training<br><span class="fire">Meisterschaft</span></h1>
+    <p class="lead">
+      Ein wildes Blasen-Pokémon trickst dich manchmal aus: Plötzlich muss es <b>ganz dringend</b> sein —
+      im Auto oder mitten in der Nacht. Zusammen zähmen wir es. Jeden Tag erledigst du 4 Trainer-Aufgaben.
+      Alle 4 geschafft? Dann malst du deinen <b>Tages-Ball</b> aus und die Arena-Fackel steigt eine Stufe.
+      7 Bälle = neuer Rang.
+    </p>
+  </section>
+
+  <!-- ============ AUSWEIS ============ -->
+  <section class="card idcard">
+    <h2>Dein Trainer-Ausweis</h2>
+    <div class="idgrid">
+      <div class="fields">
+        <label>Trainer-Name<i></i></label>
+        <label>Alter<i></i></label>
+        <label>Start-Datum<i></i></label>
+        <label>Lieblings-Pok&eacute;mon<i></i></label>
+      </div>
+      <div class="draw"><span>Zeichne hier dein Team-Pok&eacute;mon</span></div>
+    </div>
+  </section>
+
+  <!-- ============ AUFGABEN ============ -->
+  <section class="card">
+    <h2>Diese 4 Aufgaben machst du jeden Tag</h2>
+    <div class="tasks">
+      <article class="task">
+        <span class="no">01</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="#FF7A18" stroke-width="2.2" stroke-linecap="round">
+          <circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M19.1 4.9l-1.8 1.8M6.7 17.3l-1.8 1.8"/>
+        </svg>
+        <h3>Morgen-Check</h3>
+        <p>Direkt nach dem Aufwachen als Erstes aufs Klo.</p>
+      </article>
+      <article class="task">
+        <span class="no">02</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="#16C0B0" stroke-width="2.2" stroke-linejoin="round">
+          <path d="M12 3s6 6.3 6 10.3A6 6 0 0 1 6 13.3C6 9.3 12 3 12 3z"/>
+        </svg>
+        <h3>Trank-Energie</h3>
+        <p>Tagsüber fleißig Wasser trinken — das macht die Blase stark.</p>
+      </article>
+      <article class="task">
+        <span class="no">03</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="#E62E0B" stroke-width="2.2" stroke-linejoin="round">
+          <path d="M3 13.5l1.7-5A2.5 2.5 0 0 1 7 6.8h10a2.5 2.5 0 0 1 2.3 1.7l1.7 5"/>
+          <rect x="3" y="13.5" width="18" height="5.2" rx="1.6"/><path d="M6.5 18.7v1.8M17.5 18.7v1.8"/>
+        </svg>
+        <h3>Sicherheits-Stopp</h3>
+        <p>Immer direkt vor dem Autofahren nochmal Pipi machen.</p>
+      </article>
+      <article class="task">
+        <span class="no">04</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="#7A4BC9" stroke-width="2.2" stroke-linejoin="round">
+          <path d="M20 14.5A8.3 8.3 0 0 1 9.2 3.8a8.5 8.5 0 1 0 10.8 10.7z"/>
+        </svg>
+        <h3>Gute-Nacht-Stopp</h3>
+        <p>Direkt vor dem Einschlafen die Blase ganz leeren.</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- ============ VERSPRECHEN ============ -->
+  <section class="card pact">
+    <h2>Offizielles Trainer-Versprechen</h2>
+    <p>
+      Wir sind ein unschlagbares Team. Als <b>Meister-Trainer</b> gebe ich jeden Tag mein Bestes und erledige
+      meine 4 Aufgaben. Als <b>Arenaleiter und Co-Trainer</b> stehe ich immer hinter dir, halte bei jeder Fahrt
+      an und besorge die Booster-Packs. Und wenn doch mal ein wildes Pokémon dazwischenfunkt: Wir schütteln uns
+      kurz, lachen und machen einfach weiter. Das passiert jedem Trainer.
+    </p>
+    <div class="sign">
+      <div>Meister-Trainer<span>Unterschrift</span></div>
+      <div>Co-Trainer (Papa)<span>Unterschrift</span></div>
+    </div>
+  </section>
+
+  <!-- Arenen werden per Skript eingesetzt -->
+  <div id="arenas"></div>
+
+  <p class="footnote">Tipp: Auf dem Bildschirm zum Antippen — oder ausdrucken und mit Stiften ausmalen.</p>
+</div>
+
+<script>
+const WEEKS = [
+  {rank:"Rang I",  name:"Glutexo-Arena",           note:"Woche 1"},
+  {rank:"Rang II", name:"Glurak-Power-Arena",      note:"Woche 2"},
+  {rank:"Rang III",name:"Mega-Champion-Arena",     note:"Woche 3"}
+];
+const TASKS = [
+  {t:"Morgen-Check",      c:"#FF7A18", d:'<circle cx="12" cy="12" r="4.2"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M18.4 5.6L17 7M7 17l-1.4 1.4"/>'},
+  {t:"Trank-Energie",     c:"#16C0B0", d:'<path d="M12 3s6 6.3 6 10.3A6 6 0 0 1 6 13.3C6 9.3 12 3 12 3z"/>'},
+  {t:"Sicherheits-Stopp", c:"#E62E0B", d:'<path d="M3 13.5l1.7-5A2.5 2.5 0 0 1 7 6.8h10a2.5 2.5 0 0 1 2.3 1.7l1.7 5"/><rect x="3" y="13.5" width="18" height="5.2" rx="1.6"/>'},
+  {t:"Gute-Nacht-Stopp",  c:"#7A4BC9", d:'<path d="M20 14.5A8.3 8.3 0 0 1 9.2 3.8a8.5 8.5 0 1 0 10.8 10.7z"/>'}
+];
+const FLAME = '<path class="flame-fill" d="M50 4 C41 20 44 33 42 44 C39 37 36 34 33 29 C24 42 22 56 28 68 C34 81 43 90 50 96 C57 90 66 81 72 68 C78 56 76 42 67 29 C64 34 61 37 58 44 C56 33 59 20 50 4 Z"/>';
+
+let state = {};
+const key = (w,d,t)=>`w${w}d${d}${t}`;
+
+/* ---- Arenen bauen ---- */
+const wrap = document.getElementById('arenas');
+WEEKS.forEach((W,wi)=>{
+  const w = wi+1;
+  let cells = '<div class="gh corner">.</div>';
+  for(let d=1; d<=7; d++) cells += `<div class="gh">Tag ${d}</div>`;
+
+  TASKS.forEach((T,ti)=>{
+    cells += `<div class="tl"><svg viewBox="0 0 24 24" fill="none" stroke="${T.c}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round">${T.d}</svg>${T.t}</div>`;
+    for(let d=1; d<=7; d++){
+      cells += `<div class="cell"><button class="tick" role="checkbox" aria-checked="false" aria-pressed="false"
+        aria-label="${T.t}, Tag ${d}, Woche ${w}" data-k="${key(w,d,ti)}" data-w="${w}" data-d="${d}">
+        <svg viewBox="0 0 100 100">${FLAME}</svg></button></div>`;
+    }
+  });
+
+  cells += `<div class="tl ballrow">Tages-Ball<br><span style="font-weight:700;color:#6B5C8A">alle 4 geschafft</span></div>`;
+  for(let d=1; d<=7; d++){
+    cells += `<div class="cell"><button class="ball" role="checkbox" aria-checked="false" aria-pressed="false"
+      aria-label="Tages-Ball Tag ${d}, Woche ${w}" data-k="${key(w,d,'ball')}" data-w="${w}" data-d="${d}">${d}</button></div>`;
+  }
+
+  let bands = '';
+  for(let i=0;i<7;i++){
+    bands += `<rect class="band" data-w="${w}" data-i="${i}" x="0" y="${100-(i+1)*14.3}" width="100" height="14.5"/>`;
+  }
+
+  wrap.insertAdjacentHTML('beforeend', `
+  <section class="card arena" data-week="${w}">
+    <div class="arena-head">
+      <span class="rank">${W.rank}</span>
+      <span class="name">${W.name}</span>
+      <span class="week">${W.note}</span>
+    </div>
+    <div class="board">
+      <div class="scroller"><div class="grid">${cells}</div></div>
+      <div class="torch">
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <defs>
+            <clipPath id="clipF${w}">
+              <path d="M50 4 C41 20 44 33 42 44 C39 37 36 34 33 29 C24 42 22 56 28 68 C34 81 43 90 50 96 C57 90 66 81 72 68 C78 56 76 42 67 29 C64 34 61 37 58 44 C56 33 59 20 50 4 Z"/>
+            </clipPath>
+          </defs>
+          <g clip-path="url(#clipF${w})">${bands}</g>
+          <path d="M50 4 C41 20 44 33 42 44 C39 37 36 34 33 29 C24 42 22 56 28 68 C34 81 43 90 50 96 C57 90 66 81 72 68 C78 56 76 42 67 29 C64 34 61 37 58 44 C56 33 59 20 50 4 Z"
+                fill="none" stroke="#241A3D" stroke-width="4" stroke-linejoin="round"/>
+        </svg>
+        <span class="cap">Arena-Fackel<br>1 Ball = 1 Stufe</span>
+      </div>
+    </div>
+    <div class="reward">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#E62E0B" stroke-width="2" stroke-linejoin="round">
+        <rect x="3" y="8" width="18" height="12.5" rx="2"/><path d="M3 12h18M12 8v12.5"/>
+        <path d="M12 8S10.5 3.5 8 4.2 8.8 8 12 8zM12 8s1.5-4.5 4-3.8S15.2 8 12 8z"/>
+      </svg>
+      <p><b>Dein Gewinn-Feld</b>Hier legt Papa am Sonntag dein verdientes Booster-Pack ab — wenn die Fackel oben brennt.</p>
+    </div>
+    <p class="tally" data-tally="${w}">0 von 7 Bällen</p>
+  </section>`);
+});
+
+/* ---- Zustand ---- */
+function apply(){
+  document.querySelectorAll('.tick,.ball').forEach(b=>{
+    const on = !!state[b.dataset.k];
+    b.setAttribute('aria-pressed', on); b.setAttribute('aria-checked', on);
+  });
+  for(let w=1; w<=3; w++){
+    let balls = 0;
+    for(let d=1; d<=7; d++){
+      const four = [0,1,2,3].every(t=>state[key(w,d,t)]);
+      const ball = document.querySelector(`.ball[data-k="${key(w,d,'ball')}"]`);
+      ball.classList.toggle('ready', four && !state[key(w,d,'ball')]);
+      if(state[key(w,d,'ball')]) balls++;
+    }
+    const RAMP=["#E62E0B","#F04409","#FA5B0C","#FF7A18","#FF9A22","#FFB42F","#FFC93C"];
+    document.querySelectorAll(`.band[data-w="${w}"]`).forEach(r=>{
+      const on = +r.dataset.i < balls;
+      r.classList.toggle('lit', on);
+      r.style.fill = on ? RAMP[+r.dataset.i] : '';
+    });
+    document.querySelector(`[data-tally="${w}"]`).textContent = `${balls} von 7 Bällen`;
+  }
+}
+
+async function save(){
+  const raw = JSON.stringify(state);
+  try{ if(window.storage){ await window.storage.set('blasen-training', raw, false); return; } }catch(e){}
+  try{ localStorage.setItem('blasen-training', raw); }catch(e){}
+}
+async function load(){
+  try{ if(window.storage){ const r = await window.storage.get('blasen-training', false); if(r&&r.value){ state = JSON.parse(r.value); } } }
+  catch(e){ try{ const l = localStorage.getItem('blasen-training'); if(l) state = JSON.parse(l); }catch(e2){} }
+  apply();
+}
+
+document.addEventListener('click', e=>{
+  const b = e.target.closest('.tick,.ball');
+  if(!b) return;
+  state[b.dataset.k] = !state[b.dataset.k];
+  apply(); save();
+});
+document.getElementById('resetBtn').addEventListener('click', ()=>{
+  if(!confirm('Wirklich alle Häkchen und Bälle löschen?')) return;
+  state = {}; apply(); save();
+});
+
+apply(); load();
+</script>

@@ -1,0 +1,14 @@
+services:
+  glut-arena-sync:
+    build: .
+    container_name: glut-arena-sync
+    restart: unless-stopped
+    environment:
+      # Langes Geheimwort, frei erfunden. Steht später auch im Spiel.
+      SYNC_KEY: "bitte-hier-ein-langes-geheimwort-eintragen"
+      # Besser als *: die konkrete Adresse, unter der das Spiel läuft
+      ALLOW_ORIGIN: "*"
+    volumes:
+      - ./data:/data
+    ports:
+      - "8099:8099"

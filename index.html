@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1B1233">
+<meta name="description" content="Ein kleines Trainings-Spiel: Jeden Tag vier Aufgaben, jeden Tag ein Glut-Orb - und dein Drache entwickelt sich weiter.">
+<title>Glut-Arena</title>
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Glut-Arena">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128293;</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --night:#1B1233; --night2:#2C1C52; --ember:#FF7A18; --lava:#E62E0B;
+  --gold:#FFC93C; --aqua:#16C0B0; --paper:#FFF6E9; --ink:#241A3D;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;height:100%}
+body{
+  font-family:"Nunito",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  color:var(--paper); background:var(--night); overflow-x:hidden;
+  -webkit-text-size-adjust:100%;
+}
+#sky{
+  position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(700px 460px at 50% 6%, #6A2C86 0%, transparent 62%),
+    radial-gradient(620px 420px at 12% 34%, #8A2440 0%, transparent 60%),
+    radial-gradient(560px 400px at 92% 26%, #3A1D6B 0%, transparent 58%),
+    linear-gradient(180deg,#1B1233 0%,#241541 55%,#3A1B3E 100%);
+}
+.ember{
+  position:fixed;bottom:-24px;width:7px;height:7px;border-radius:50%;
+  background:radial-gradient(circle at 35% 35%,#FFE9A8,var(--ember) 55%,rgba(230,46,11,0));
+  animation:rise linear infinite;z-index:0;pointer-events:none;opacity:.75;
+}
+@keyframes rise{
+  0%{transform:translate3d(0,0,0) scale(.6);opacity:0}
+  12%{opacity:.85}
+  100%{transform:translate3d(var(--dx,20px),-104vh,0) scale(1.1);opacity:0}
+}
+.wrap{position:relative;z-index:2;max-width:520px;margin:0 auto;padding:10px 14px calc(28px + var(--safe-b))}
+
+/* ---------- Kopfzeile ---------- */
+.top{display:flex;align-items:center;gap:8px;padding:6px 2px 10px}
+.brand{font-family:"Bungee",cursive;font-size:14px;letter-spacing:.06em;flex:1;line-height:1.1}
+.brand small{display:block;font-family:"Nunito";font-weight:900;font-size:10px;letter-spacing:.14em;color:#B49CE0;text-transform:uppercase}
+.iconbtn{
+  width:38px;height:38px;border-radius:12px;border:2px solid rgba(255,255,255,.22);
+  background:rgba(255,255,255,.07);color:var(--paper);display:grid;place-items:center;cursor:pointer;flex:none;
+}
+.iconbtn:active{transform:scale(.93)}
+.iconbtn svg{width:19px;height:19px}
+.iconbtn:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.iconbtn[data-s="off"]{opacity:.4}
+.iconbtn[data-s="ok"]{color:#7BE3D2;border-color:rgba(123,227,210,.5)}
+.iconbtn[data-s="busy"]{color:var(--gold);border-color:rgba(255,201,60,.5)}
+.iconbtn[data-s="err"]{color:#FF9C82;border-color:rgba(255,120,90,.6)}
+.filerow{display:none}
+
+/* ---------- Arena / Kreatur ---------- */
+.arena{
+  position:relative;border-radius:26px;padding:12px 12px 0;
+  background:linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.02));
+  border:2px solid rgba(255,255,255,.16);overflow:hidden;
+}
+.arena::after{
+  content:"";position:absolute;left:50%;bottom:0;width:150%;height:70px;transform:translateX(-50%);
+  background:radial-gradient(closest-side, rgba(255,122,24,.45), transparent 72%);pointer-events:none;
+}
+.stagewrap{position:relative;height:230px;display:grid;place-items:end center}
+.mon{width:auto;height:224px;display:block;position:relative;z-index:2}
+img.mon{object-fit:contain;max-width:100%}
+.mon.custom{animation:bob 2.8s ease-in-out infinite;transform-origin:center bottom}
+.monfail{align-self:center;color:#FFB4A0;font-size:12.5px;font-weight:900;text-align:center;padding:0 20px 40px}
+.rays{position:absolute;inset:0;display:grid;place-items:center;opacity:0;z-index:1;pointer-events:none}
+.rays svg{width:340px;height:340px;animation:spin 14s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.rays.on{opacity:.55;transition:opacity .5s}
+
+.nameplate{position:relative;z-index:3;text-align:center;padding:4px 0 12px}
+.monname{font-family:"Bungee",cursive;font-size:21px;letter-spacing:.03em}
+.monrank{font-size:11px;font-weight:900;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-top:2px}
+
+/* ---------- Fortschritt ---------- */
+.hud{margin:12px 0 0;background:rgba(0,0,0,.24);border:2px solid rgba(255,255,255,.14);border-radius:18px;padding:12px 14px}
+.hudtop{display:flex;justify-content:space-between;align-items:baseline;font-size:11.5px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;color:#C9B6F2}
+.hudtop b{font-family:"Bungee",cursive;font-size:13px;color:var(--paper);letter-spacing:.03em}
+.bar{height:20px;border-radius:999px;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.18);margin-top:8px;overflow:hidden;position:relative}
+.fill{height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,var(--lava),var(--ember) 55%,var(--gold));transition:width .8s cubic-bezier(.2,.9,.25,1)}
+.fill.pulse{animation:barpulse .7s ease}
+@keyframes barpulse{50%{filter:brightness(1.6)}}
+.hudnote{font-size:12.5px;font-weight:700;color:#D9CCF5;margin-top:7px}
+
+/* ---------- Aufgaben ---------- */
+.daybar{display:flex;align-items:center;gap:8px;margin:18px 0 10px}
+.daybar h2{font-family:"Bungee",cursive;font-size:14px;margin:0;flex:1;letter-spacing:.03em}
+.pill{font-size:11px;font-weight:900;background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.2);
+  border-radius:999px;padding:5px 11px;color:var(--paper);cursor:pointer}
+.tasklist{display:flex;flex-direction:column;gap:9px}
+.task{
+  display:flex;align-items:center;gap:12px;width:100%;text-align:left;cursor:pointer;
+  background:var(--paper);color:var(--ink);border:3px solid var(--ink);border-radius:18px;
+  padding:12px 13px;font-family:inherit;font-size:15px;font-weight:900;
+  box-shadow:0 5px 0 0 rgba(0,0,0,.45);transition:transform .12s ease, box-shadow .12s ease, background .2s;
+}
+.task:active{transform:translateY(4px);box-shadow:0 1px 0 0 rgba(0,0,0,.45)}
+.task .ico{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex:none;background:#F2E7D5}
+.task .ico svg{width:23px;height:23px}
+.task .txt{flex:1;line-height:1.2}
+.task .txt small{display:block;font-weight:700;font-size:11.5px;color:#6B5C8A;margin-top:2px}
+.task .box{width:38px;height:38px;border-radius:12px;border:3px solid var(--ink);flex:none;display:grid;place-items:center;background:#fff}
+.task .box svg{width:23px;height:23px}
+.task .box .fl{fill:#E9DECB}
+.task.done{background:linear-gradient(180deg,#FFE9B8,#FFD08A)}
+.task.done .box{background:linear-gradient(180deg,var(--gold),var(--ember));border-color:var(--lava)}
+.task.done .box .fl{fill:var(--lava)}
+.task.done .ico{background:#FFF3D6}
+.task:disabled{opacity:.45;cursor:default;box-shadow:none}
+.task:focus-visible{outline:4px solid var(--aqua);outline-offset:3px}
+
+/* ---------- Tagesorbs ---------- */
+.weeks{margin-top:20px}
+.week{margin-bottom:12px}
+.wlabel{font-size:10.5px;font-weight:900;letter-spacing:.14em;text-transform:uppercase;color:#B49CE0;margin:0 0 6px 2px}
+.orbs{display:grid;grid-template-columns:repeat(7,1fr);gap:7px}
+.orb{
+  aspect-ratio:1;border-radius:50%;border:2.5px solid rgba(255,255,255,.28);background:rgba(255,255,255,.06);
+  color:#B49CE0;font-family:"Bungee",cursive;font-size:11px;display:grid;place-items:center;cursor:pointer;padding:0;
+}
+.orb.part{border-color:var(--ember);color:var(--ember)}
+.orb.full{background:radial-gradient(circle at 34% 30%,#FFE9A8,var(--gold) 42%,var(--ember) 74%,var(--lava));
+  border-color:#FFDFA0;color:#5B2408;box-shadow:0 0 12px rgba(255,150,40,.55)}
+.orb.today{outline:3px solid var(--aqua);outline-offset:2px}
+.orb.future{opacity:.35;cursor:default}
+.orb.sel{transform:scale(1.12)}
+
+/* ---------- Belohnung ---------- */
+.reward{
+  margin-top:6px;display:flex;gap:10px;align-items:center;border:2px dashed var(--gold);
+  border-radius:14px;padding:9px 11px;font-size:12.5px;font-weight:700;color:#FFE7B4;background:rgba(255,201,60,.08)
+}
+.reward.claimed{border-style:solid;background:rgba(255,201,60,.2)}
+.reward svg{width:22px;height:22px;flex:none}
+
+/* ---------- Papa-Panel ---------- */
+.sheet{
+  position:fixed;inset:0;z-index:60;background:rgba(12,7,26,.72);backdrop-filter:blur(4px);
+  display:none;align-items:flex-end;justify-content:center;
+}
+.sheet.on{display:flex}
+.sheetin{
+  background:#241541;border:3px solid rgba(255,255,255,.2);border-radius:24px 24px 0 0;
+  width:100%;max-width:520px;padding:18px 18px calc(24px + var(--safe-b));max-height:88vh;overflow:auto;
+  animation:slideup .28s ease;
+}
+@keyframes slideup{from{transform:translateY(30px);opacity:0}}
+.sheetin h3{font-family:"Bungee",cursive;font-size:16px;margin:0 0 4px}
+.sheetin p.hint{font-size:12.5px;color:#C0AEE8;margin:0 0 16px;line-height:1.5}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:11px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:#B49CE0;margin-bottom:5px}
+.field input,.field textarea{
+  width:100%;font-family:inherit;font-size:15px;font-weight:700;padding:11px 12px;border-radius:12px;
+  border:2px solid rgba(255,255,255,.25);background:rgba(0,0,0,.3);color:var(--paper)
+}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.btn{
+  font-family:inherit;font-weight:900;font-size:13.5px;padding:11px 15px;border-radius:12px;cursor:pointer;
+  border:2px solid rgba(255,255,255,.25);background:rgba(255,255,255,.1);color:var(--paper)
+}
+.btn.go{background:var(--ember);border-color:#FFB46B;color:#26150A}
+.btn.danger{background:rgba(230,46,11,.25);border-color:#E9714F;color:#FFD7C9}
+.rewardrow{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid rgba(255,255,255,.12);font-size:13.5px;font-weight:700}
+.rewardrow input{width:20px;height:20px;accent-color:#FF7A18}
+
+/* ---------- Entwicklung ---------- */
+.evo{position:fixed;inset:0;z-index:80;display:none;place-items:center;background:rgba(10,5,22,.965)}
+.evo.on{display:grid}
+.evostage{position:relative;display:grid;place-items:center;width:min(92vw,420px);height:min(60vh,420px)}
+.evostage::before{
+  content:"";position:absolute;width:120%;aspect-ratio:1;border-radius:50%;opacity:0;transition:opacity .6s;
+  background:radial-gradient(closest-side, rgba(255,180,60,.42), rgba(255,120,20,.12) 55%, transparent 72%);
+}
+.evostage.glow::before{opacity:1}
+.evostage .mon{height:min(46vh,300px)}
+.evotitle{
+  font-family:"Bungee",cursive;font-size:clamp(20px,7vw,30px);text-align:center;margin-top:6px;
+  color:var(--gold);text-shadow:0 0 22px rgba(255,150,40,.8);opacity:0
+}
+.evotitle.on{opacity:1;animation:pop .5s cubic-bezier(.2,1.6,.4,1)}
+@keyframes pop{from{transform:scale(.5);opacity:0}}
+.evosub{text-align:center;font-size:14px;font-weight:900;color:#E6D8FF;margin-top:6px;opacity:0}
+.evosub.on{opacity:1;transition:opacity .5s .2s}
+.evo .btn{margin-top:20px;opacity:0;pointer-events:none}
+.evo .btn.on{opacity:1;pointer-events:auto;transition:opacity .4s}
+.silhouette{filter:brightness(0) invert(1) drop-shadow(0 0 26px rgba(255,220,150,.95))}
+.shakeit{animation:shakeit .42s ease-in-out}
+@keyframes shakeit{
+  0%,100%{transform:translateX(0)}
+  20%{transform:translateX(-9px) rotate(-2deg)}
+  50%{transform:translateX(9px) rotate(2deg)}
+  80%{transform:translateX(-5px)}
+}
+.flashwhite{position:fixed;inset:0;background:#fff;opacity:0;z-index:90;pointer-events:none}
+.flashwhite.go{animation:flash .55s ease-out}
+@keyframes flash{0%{opacity:0}18%{opacity:1}100%{opacity:0}}
+
+/* ---------- Toast + Partikel ---------- */
+.toast{
+  position:fixed;left:50%;bottom:22px;transform:translate(-50%,26px);z-index:70;
+  background:var(--paper);color:var(--ink);font-weight:900;font-size:14px;padding:12px 18px;border-radius:999px;
+  border:3px solid var(--ink);box-shadow:0 8px 0 -2px rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:.3s
+}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+.spark{position:fixed;width:10px;height:10px;border-radius:50%;pointer-events:none;z-index:75}
+
+/* ---------- Kreatur-Animationen ---------- */
+.bob{animation:bob 2.8s ease-in-out infinite;transform-origin:100px 170px}
+@keyframes bob{0%,100%{transform:translateY(0) scaleY(1)}50%{transform:translateY(-6px) scaleY(1.015)}}
+.flick{animation:flick 1.1s ease-in-out infinite}
+@keyframes flick{0%,100%{transform:scale(1,1) rotate(0)}35%{transform:scale(.9,1.16) rotate(-4deg)}70%{transform:scale(1.08,.94) rotate(3deg)}}
+.eyes{animation:blink 5.4s infinite;transform-box:fill-box;transform-origin:center}
+@keyframes blink{0%,92%,100%{transform:scaleY(1)}94%,96%{transform:scaleY(.08)}}
+.wingL{animation:wingL 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:right center}
+.wingR{animation:wingR 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:left center}
+@keyframes wingL{0%,100%{transform:rotate(0)}50%{transform:rotate(-11deg)}}
+@keyframes wingR{0%,100%{transform:rotate(0)}50%{transform:rotate(11deg)}}
+.breath{animation:breath 3.4s ease-in-out infinite;transform-box:fill-box;transform-origin:left center}
+@keyframes breath{0%,62%,100%{opacity:0;transform:scaleX(.4)}72%,90%{opacity:1;transform:scaleX(1)}}
+.happy{animation:happy .6s cubic-bezier(.2,1.7,.4,1) 2}
+@keyframes happy{0%,100%{transform:translateY(0)}40%{transform:translateY(-22px)}}
+.shadow{fill:rgba(0,0,0,.4)}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body>
+<div id="sky"></div>
+<div class="flashwhite" id="flash"></div>
+
+<div class="wrap">
+  <div class="top">
+    <div class="brand" id="brand">GLUT-ARENA<small id="who">Trainer</small></div>
+    <button class="iconbtn" id="syncBtn" data-s="off" aria-label="Abgleich"></button>
+    <button class="iconbtn" id="soundBtn" aria-label="Ton an oder aus"></button>
+    <button class="iconbtn" id="papaBtn" aria-label="Papa-Bereich">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v2.6M12 18.6v2.6M4.6 12H2M22 12h-2.6M6.2 6.2 4.4 4.4M19.6 19.6l-1.8-1.8M17.8 6.2l1.8-1.8M6.2 17.8l-1.8 1.8"/></svg>
+    </button>
+  </div>
+
+  <section class="arena">
+    <div class="stagewrap">
+      <div class="rays" id="rays">
+        <svg viewBox="0 0 200 200" aria-hidden="true"><g id="rayg"></g></svg>
+      </div>
+      <div id="monHost"></div>
+    </div>
+    <div class="nameplate">
+      <div class="monname" id="monName">-</div>
+      <div class="monrank" id="monRank">-</div>
+    </div>
+  </section>
+
+  <section class="hud">
+    <div class="hudtop"><span>Glut-Orbs</span><b id="orbCount">0</b></div>
+    <div class="bar"><div class="fill" id="fill"></div></div>
+    <div class="hudnote" id="hudNote"></div>
+  </section>
+
+  <div class="daybar">
+    <h2 id="dayTitle">Heute</h2>
+    <button class="pill" id="backToday" hidden>Zurück zu heute</button>
+  </div>
+  <div class="tasklist" id="tasks"></div>
+
+  <div class="weeks" id="weeks"></div>
+</div>
+
+<!-- Papa-Panel -->
+<div class="sheet" id="sheet">
+  <div class="sheetin">
+    <h3>Papa-Bereich</h3>
+    <p class="hint">Der Spielstand liegt auf diesem Gerät. Nur wenn unten eine Sync-Adresse eingetragen ist, wird er zusätzlich dorthin geschickt.</p>
+
+    <div class="field">
+      <label for="nameIn">Trainer-Name</label>
+      <input id="nameIn" maxlength="18" placeholder="z.B. Max" autocomplete="off">
+    </div>
+
+    <label style="display:block;font-size:11px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:#B49CE0;margin-bottom:2px">Belohnungen</label>
+    <div id="rewardRows"></div>
+
+    <div class="field" style="margin-top:18px">
+      <label for="syncUrl">Sync-Adresse (leer lassen = nur dieses Gerät)</label>
+      <input id="syncUrl" placeholder="https://sync.deine-domain.de/state" autocomplete="off" inputmode="url">
+    </div>
+    <div class="field">
+      <label for="syncKey">Sync-Schlüssel</label>
+      <input id="syncKey" placeholder="das Geheimwort vom Server" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="syncId">Profil (falls mehrere Kinder)</label>
+      <input id="syncId" placeholder="kind1" autocomplete="off">
+    </div>
+    <div class="btnrow">
+      <button class="btn" id="linkBtn">Link für Gerät 2 kopieren</button>
+      <button class="btn" id="syncNow">Jetzt abgleichen</button>
+    </div>
+
+    <div class="btnrow" style="margin-top:18px">
+      <button class="btn" id="backupBtn">Sicherung speichern</button>
+      <button class="btn" id="restoreBtn">Sicherung laden</button>
+      <input type="file" id="restoreIn" accept="application/json,.json" class="filerow">
+    </div>
+
+    <div class="btnrow" style="margin-top:18px">
+      <button class="btn go" id="saveBtn">Speichern</button>
+      <button class="btn" id="exportBtn">Daten kopieren</button>
+      <button class="btn danger" id="resetBtn">Alles zurücksetzen</button>
+    </div>
+    <div class="btnrow"><button class="btn" id="closeBtn" style="flex:1">Schließen</button></div>
+    <div class="field" style="margin-top:14px">
+      <label for="importIn">Daten einfügen (Umzug auf ein anderes Gerät)</label>
+      <textarea id="importIn" rows="3" placeholder="Hier den kopierten Text einfügen und auf Speichern tippen"></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- Entwicklung -->
+<div class="evo" id="evo">
+  <div>
+    <div class="evostage"><div id="evoHost"></div></div>
+    <div class="evotitle" id="evoTitle">ENTWICKLUNG!</div>
+    <div class="evosub" id="evoSub"></div>
+    <div style="text-align:center"><button class="btn go" id="evoBtn">Weiter</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================================
+   KONFIGURATION - hier darfst du gefahrlos rumschrauben
+   ========================================================================= */
+const CONFIG = {
+  arenaName: "GLUT-ARENA",
+  daysTotal: 21,          // Länge des Plans
+  orbsPerStage: 7,        // Orbs bis zur nächsten Entwicklung
+  /* Eigene Figur statt der mitgelieferten:
+     Bei einer Stufe img einsetzen, z.B.  img:"bilder/stufe1.png"
+     Empfohlen: PNG oder SVG mit durchsichtigem Hintergrund, Figur steht unten
+     im Bild auf, etwa 600 Pixel hoch. Wippen, Hüpfen und der weiße
+     Entwicklungs-Blitz funktionieren mit eigenen Bildern genauso. */
+  stages: [
+    { name:"Zündli",     rank:"Funken-Rang",    line:"Ein kleines Glutwesen. Noch wackelig, aber voller Feuer.", img:"" },
+    { name:"Glutkralle", rank:"Flammen-Rang",   line:"Krallen, Hörner, erste Flügel. Es wird ernst.",            img:"" },
+    { name:"Infernox",   rank:"Champion-Rang",  line:"Ausgewachsen, mit vollem Flügelschlag und Feueratem.",     img:"" }
+  ],
+  tasks: [
+    { key:"morgen", label:"Morgen-Check",      hint:"Direkt nach dem Aufwachen aufs Klo",  color:"#FF7A18",
+      ico:'<circle cx="12" cy="12" r="4.2"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4"/>' },
+    { key:"trinken", label:"Trank-Energie",    hint:"Tagsüber ordentlich Wasser trinken",  color:"#16C0B0",
+      ico:'<path d="M12 3s6 6.3 6 10.3A6 6 0 0 1 6 13.3C6 9.3 12 3 12 3z"/>' },
+    { key:"auto",    label:"Sicherheits-Stopp", hint:"Vor jeder Autofahrt nochmal Pipi",   color:"#E62E0B",
+      ico:'<path d="M3 13.5l1.7-5A2.5 2.5 0 0 1 7 6.8h10a2.5 2.5 0 0 1 2.3 1.7l1.7 5"/><rect x="3" y="13.5" width="18" height="5.2" rx="1.6"/>' },
+    { key:"nacht",   label:"Gute-Nacht-Stopp",  hint:"Vor dem Einschlafen Blase leeren",   color:"#9B6BEA",
+      ico:'<path d="M20 14.5A8.3 8.3 0 0 1 9.2 3.8a8.5 8.5 0 1 0 10.8 10.7z"/>' }
+  ],
+  rewardText: "Booster-Pack von Papa"
+};
+
+/* =========================================================================
+   Datenhaltung - alles bleibt im Browser (localStorage)
+   ========================================================================= */
+const KEY = "glut-arena-v1";
+const todayISO = () => new Date().toISOString().slice(0,10);
+const addDays = (iso,n) => { const d=new Date(iso+"T12:00:00"); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); };
+const dayDiff = (a,b) => Math.round((new Date(b+"T12:00:00") - new Date(a+"T12:00:00"))/86400000);
+const fmtDE = iso => { const d=new Date(iso+"T12:00:00");
+  return ["So","Mo","Di","Mi","Do","Fr","Sa"][d.getDay()]+", "+d.getDate()+"."+(d.getMonth()+1)+"."; };
+
+let S = { name:"", start:todayISO(), days:{}, rewards:[false,false,false], stageSeen:0, muted:false };
+let selected = todayISO();
+
+function load(){
+  try{ const raw = localStorage.getItem(KEY); if(raw) S = Object.assign(S, JSON.parse(raw)); }catch(e){}
+  if(!S.start) S.start = todayISO();
+}
+function save(quiet){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} if(!quiet) syncSoon(); }
+
+/* =========================================================================
+   Abgleich zwischen zwei Geräten
+   Ablauf: erst holen und zusammenführen, dann den vereinten Stand zurückschreiben.
+   Ohne Netz passiert nichts Schlimmes - lokal bleibt alles erhalten.
+   ========================================================================= */
+const SKEY = "glut-arena-sync";
+let SY = { url:"", key:"", id:"kind1" };
+const b64u = t => btoa(unescape(encodeURIComponent(t))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+const unb64u = t => decodeURIComponent(escape(atob(t.replace(/-/g,"+").replace(/_/g,"/"))));
+
+function loadSync(){ try{ const r=localStorage.getItem(SKEY); if(r) SY=Object.assign(SY,JSON.parse(r)); }catch(e){} }
+function saveSyncCfg(){ try{ localStorage.setItem(SKEY, JSON.stringify(SY)); }catch(e){} }
+const syncOn = () => !!(SY.url && SY.key);
+function endpoint(){
+  const u = new URL(SY.url);
+  u.searchParams.set("key", SY.key);
+  u.searchParams.set("id", SY.id || "kind1");
+  return u.toString();
+}
+function syncStatus(state, msg){
+  const b=document.getElementById("syncBtn");
+  b.dataset.s = state; b.title = msg || "";
+  b.innerHTML = state==="busy"
+    ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>'
+    : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .6-8A6 6 0 0 0 6.2 9.2 3.9 3.9 0 0 0 7 18z"/>'
+      + (state==="err" ? '<path d="M12 9v3M12 15.5v.1"/>' : state==="ok" ? '<path d="M9.6 13.6l1.8 1.8 3.4-3.6"/>' : '') + '</svg>';
+}
+function mergeRemote(r){
+  if(!r || typeof r!=="object") return false;
+  const localDays = Object.keys(S.days||{}).length;
+  const remoteDays = Object.keys(r.days||{}).length;
+  if(localDays===0 && remoteDays>0){ S = Object.assign(S, r); return true; }
+  let changed=false;
+  for(const iso in (r.days||{})){
+    const a=S.days[iso], b=r.days[iso];
+    if(!a || (b._t||0) > (a._t||0)){ S.days[iso]=b; changed=true; }
+  }
+  if((r.metaT||0) > (S.metaT||0)){
+    S.name = r.name || ""; S.rewards = r.rewards || S.rewards;
+    S.start = r.start || S.start; S.metaT = r.metaT; changed=true;
+  }
+  return changed;
+}
+let syncing=false, syncTimer=null;
+async function doSync(){
+  if(!syncOn() || syncing) return;
+  syncing=true; syncStatus("busy","Abgleich läuft");
+  try{
+    const res = await fetch(endpoint(), {cache:"no-store"});
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const data = await res.json();
+    if(mergeRemote(data.state)){ save(true); renderAll(); }
+    const put = await fetch(endpoint(), {
+      method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify(S)
+    });
+    if(!put.ok) throw new Error("HTTP "+put.status);
+    syncStatus("ok","Abgeglichen um "+new Date().toLocaleTimeString("de-DE"));
+  }catch(e){
+    syncStatus("err","Kein Kontakt zum Server ("+e.message+"). Lokal ist alles gespeichert.");
+  }finally{ syncing=false; }
+}
+function syncSoon(ms=1500){ if(!syncOn()) return; clearTimeout(syncTimer); syncTimer=setTimeout(doSync, ms); }
+function applyHashConfig(){
+  const m = location.hash.match(/^#sync=(.+)$/);
+  if(!m) return;
+  try{
+    const o = JSON.parse(unb64u(m[1]));
+    if(o.u && o.k){ SY = {url:o.u, key:o.k, id:o.i || "kind1"}; saveSyncCfg(); }
+  }catch(e){}
+  history.replaceState(null, "", location.pathname + location.search);
+}
+
+const dayOf = iso => S.days[iso] || {};
+const isFull = iso => CONFIG.tasks.every(t => dayOf(iso)[t.key]);
+const orbCount = () => Object.keys(S.days).filter(isFull).length;
+const stageOf = n => Math.min(CONFIG.stages.length-1, Math.floor(n / CONFIG.orbsPerStage));
+
+/* =========================================================================
+   Töne - kleine Oszillatoren, keine Dateien
+   ========================================================================= */
+let AC=null;
+const ac = () => { if(!AC){ try{ AC = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } return AC; };
+function tone(freq, dur=.14, type="triangle", when=0, vol=.16){
+  if(S.muted) return; const c=ac(); if(!c) return;
+  const t=c.currentTime+when, o=c.createOscillator(), g=c.createGain();
+  o.type=type; o.frequency.setValueAtTime(freq,t);
+  g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+.012);
+  g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+  o.connect(g).connect(c.destination); o.start(t); o.stop(t+dur+.03);
+}
+const sTap    = () => tone(620,.1,"square",0,.1);
+const sUntap  = () => tone(300,.09,"sine",0,.08);
+const sOrb    = () => [523,659,784].forEach((f,i)=>tone(f,.16,"triangle",i*.075,.16));
+const sCharge = () => [180,240,300,380,470].forEach((f,i)=>tone(f,.13,"sawtooth",i*.13,.07));
+const sFan    = () => [523,659,784,1047,1319].forEach((f,i)=>tone(f,.4,"triangle",i*.13,.18));
+
+/* =========================================================================
+   Die Kreatur - drei eigene Entwicklungsstufen als SVG
+   ========================================================================= */
+const FLAME = "M50 4 C41 20 44 33 42 44 C39 37 36 34 33 29 C24 42 22 56 28 68 C34 81 43 90 50 96 C57 90 66 81 72 68 C78 56 76 42 67 29 C64 34 61 37 58 44 C56 33 59 20 50 4 Z";
+const flameAt = (x,y,s,cls="flick") =>
+  `<g class="${cls}" style="transform-origin:${x+50*s}px ${y+70*s}px"><g transform="translate(${x},${y}) scale(${s})">
+     <path d="${FLAME}" fill="url(#flG)" stroke="#241A3D" stroke-width="${Math.max(3, 4/s)}" stroke-linejoin="round"/>
+   </g></g>`;
+
+const DEFS = `<defs>
+  <linearGradient id="bodyG" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#FFB347"/><stop offset="55%" stop-color="#FF7A18"/><stop offset="100%" stop-color="#E24A0C"/>
+  </linearGradient>
+  <linearGradient id="wingG" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#F0A24B"/><stop offset="100%" stop-color="#C63A12"/>
+  </linearGradient>
+  <linearGradient id="flG" x1="0" y1="1" x2="0" y2="0">
+    <stop offset="0%" stop-color="#E62E0B"/><stop offset="45%" stop-color="#FF7A18"/><stop offset="100%" stop-color="#FFE07A"/>
+  </linearGradient>
+</defs>`;
+const INK = 'stroke="#241A3D" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"';
+
+function eyes(cx1,cx2,cy,r=11){
+  return `<g class="eyes">
+    <ellipse cx="${cx1}" cy="${cy}" rx="${r}" ry="${r+1}" fill="#FFFDF6" ${INK} stroke-width="4"/>
+    <ellipse cx="${cx2}" cy="${cy}" rx="${r}" ry="${r+1}" fill="#FFFDF6" ${INK} stroke-width="4"/>
+    <circle cx="${cx1+1.5}" cy="${cy+2}" r="${r*.45}" fill="#241A3D"/>
+    <circle cx="${cx2+1.5}" cy="${cy+2}" r="${r*.45}" fill="#241A3D"/>
+    <circle cx="${cx1-2}" cy="${cy-3}" r="${r*.2}" fill="#fff"/>
+    <circle cx="${cx2-2}" cy="${cy-3}" r="${r*.2}" fill="#fff"/>
+  </g>`;
+}
+
+function monSVG(stage){
+  const own = CONFIG.stages[stage] && CONFIG.stages[stage].img;
+  if(own) return `<img class="mon custom" src="${own}" alt="${CONFIG.stages[stage].name}"
+                       onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'monfail',textContent:'Bild nicht gefunden: ${own}'}))">`;
+  const grow = k => `transform="translate(100,186) scale(${k}) translate(-100,-186)"`;
+
+  if(stage===0) return `<svg class="mon" viewBox="0 0 200 200" role="img" aria-label="${CONFIG.stages[0].name}">${DEFS}
+    <ellipse class="shadow" cx="100" cy="181" rx="34" ry="6"/>
+    <g class="bob" ${grow(.78)}>
+      <path d="M141 143 C168 147 174 130 166 116" fill="none" stroke="#E24A0C" stroke-width="13" stroke-linecap="round"/>
+      ${flameAt(147,80,.36)}
+      <rect x="62" y="156" width="32" height="21" rx="10" fill="#E8590C" ${INK}/>
+      <rect x="106" y="156" width="32" height="21" rx="10" fill="#E8590C" ${INK}/>
+      <ellipse cx="52" cy="124" rx="14" ry="10" fill="#F26A12" ${INK}/>
+      <ellipse cx="148" cy="124" rx="14" ry="10" fill="#F26A12" ${INK}/>
+      <path d="M100 54 C138 54 154 84 154 116 C154 146 130 165 100 165 C70 165 46 146 46 116 C46 84 62 54 100 54 Z" fill="url(#bodyG)" ${INK}/>
+      <ellipse cx="100" cy="131" rx="31" ry="26" fill="#FFE3AE"/>
+      <path d="M126 60 L142 44 L141 66 Z" fill="#FFC93C" ${INK} stroke-width="4"/>
+      ${flameAt(76,10,.5)}
+      ${eyes(83,117,100)}
+      <ellipse cx="64" cy="116" rx="9" ry="6" fill="#E62E0B" opacity=".38"/>
+      <ellipse cx="136" cy="116" rx="9" ry="6" fill="#E62E0B" opacity=".38"/>
+      <path d="M92 117 q8 9 16 0" fill="none" ${INK} stroke-width="4.5"/>
+    </g></svg>`;
+
+  if(stage===1) return `<svg class="mon" viewBox="0 0 200 200" role="img" aria-label="${CONFIG.stages[1].name}">${DEFS}
+    <ellipse class="shadow" cx="100" cy="183" rx="42" ry="7"/>
+    <g class="bob" ${grow(.92)}>
+      <path class="wingL" d="M72 106 C50 74 26 56 12 48 C12 68 16 80 12 92 C26 90 34 96 38 106 C50 98 62 98 72 108 Z" fill="url(#wingG)" ${INK} stroke-width="4.5"/>
+      <path class="wingR" d="M128 106 C150 74 174 56 188 48 C188 68 184 80 188 92 C174 90 166 96 162 106 C150 98 138 98 128 108 Z" fill="url(#wingG)" ${INK} stroke-width="4.5"/>
+      <path d="M138 154 C172 160 184 136 174 112" fill="none" stroke="#E24A0C" stroke-width="14" stroke-linecap="round"/>
+      ${flameAt(154,74,.4)}
+      <path d="M64 156 C58 176 62 182 74 182 C86 182 88 176 84 156 Z" fill="#E8590C" ${INK}/>
+      <path d="M136 156 C142 176 138 182 126 182 C114 182 112 176 116 156 Z" fill="#E8590C" ${INK}/>
+      <path d="M100 84 C132 84 150 110 150 138 C150 164 128 176 100 176 C72 176 50 164 50 138 C50 110 68 84 100 84 Z" fill="url(#bodyG)" ${INK}/>
+      <ellipse cx="100" cy="146" rx="28" ry="24" fill="#FFE3AE"/>
+      <path d="M54 126 C38 132 34 148 44 158 C48 146 56 140 66 140 Z" fill="#F26A12" ${INK} stroke-width="4"/>
+      <path d="M146 126 C162 132 166 148 156 158 C152 146 144 140 134 140 Z" fill="#F26A12" ${INK} stroke-width="4"/>
+      <ellipse cx="100" cy="74" rx="40" ry="34" fill="url(#bodyG)" ${INK}/>
+      <path d="M72 48 L58 22 L84 38 Z" fill="#FFC93C" ${INK} stroke-width="4"/>
+      <path d="M128 48 L142 22 L116 38 Z" fill="#FFC93C" ${INK} stroke-width="4"/>
+      ${flameAt(76,-6,.52)}
+      ${eyes(85,115,72,10)}
+      <ellipse cx="66" cy="88" rx="9" ry="6" fill="#E62E0B" opacity=".38"/>
+      <ellipse cx="134" cy="88" rx="9" ry="6" fill="#E62E0B" opacity=".38"/>
+      <path d="M88 94 q12 11 24 0" fill="none" ${INK} stroke-width="4.5"/>
+      <path d="M93 98 l3.5 6 l3.5 -6" fill="#FFFDF6"/>
+    </g></svg>`;
+
+  return `<svg class="mon" viewBox="0 0 200 200" role="img" aria-label="${CONFIG.stages[2].name}">${DEFS}
+    <ellipse class="shadow" cx="100" cy="187" rx="52" ry="7"/>
+    <g class="bob">
+      <path class="wingL" d="M74 104 C50 66 22 36 6 20 C4 42 8 58 3 70 C20 70 28 78 32 90 C17 94 11 110 17 126 C34 108 56 102 74 114 Z"
+            fill="url(#wingG)" ${INK} stroke-width="4.5"/>
+      <path class="wingR" d="M126 104 C150 66 178 36 194 20 C196 42 192 58 197 70 C180 70 172 78 168 90 C183 94 189 110 183 126 C166 108 144 102 126 114 Z"
+            fill="url(#wingG)" ${INK} stroke-width="4.5"/>
+      <path d="M138 160 C176 168 192 140 178 108" fill="none" stroke="#E24A0C" stroke-width="15" stroke-linecap="round"/>
+      ${flameAt(158,68,.46)}
+      <path d="M70 146 C60 174 66 186 82 186 C96 186 98 174 92 146 Z" fill="#E8590C" ${INK}/>
+      <path d="M130 146 C140 174 134 186 118 186 C104 186 102 174 108 146 Z" fill="#E8590C" ${INK}/>
+      <path d="M100 88 C132 88 150 114 150 140 C150 162 128 174 100 174 C72 174 50 162 50 140 C50 114 68 88 100 88 Z" fill="url(#bodyG)" ${INK}/>
+      <ellipse cx="100" cy="146" rx="28" ry="23" fill="#FFE3AE"/>
+      <path d="M54 124 C36 130 32 148 44 160 C48 146 58 140 68 140 Z" fill="#F26A12" ${INK} stroke-width="4"/>
+      <path d="M146 124 C164 130 168 148 156 160 C152 146 142 140 132 140 Z" fill="#F26A12" ${INK} stroke-width="4"/>
+      <path d="M100 108 L100 66" stroke="#F26A12" stroke-width="34" stroke-linecap="round"/>
+      <ellipse cx="98" cy="56" rx="35" ry="29" fill="url(#bodyG)" ${INK}/>
+      <path d="M128 54 C152 50 160 58 155 68 C144 61 136 63 127 68 Z" fill="#FFD79B" ${INK} stroke-width="4"/>
+      <g class="breath" style="transform-origin:152px 60px">
+        <path d="M152 58 C172 50 182 56 196 46 C188 66 174 70 154 68 Z" fill="url(#flG)" stroke="#E62E0B" stroke-width="3"/>
+      </g>
+      <path d="M74 32 L52 6 L86 22 Z" fill="#FFC93C" ${INK} stroke-width="4"/>
+      <path d="M120 30 L142 8 L112 22 Z" fill="#FFC93C" ${INK} stroke-width="4"/>
+      ${flameAt(78,2,.4)}
+      ${eyes(84,112,54,9)}
+      <ellipse cx="66" cy="70" rx="9" ry="6" fill="#E62E0B" opacity=".35"/>
+      <path d="M112 70 q9 7 16 1" fill="none" ${INK} stroke-width="4"/>
+    </g></svg>`;
+}
+
+/* =========================================================================
+   Aufbau der Oberfläche
+   ========================================================================= */
+function buildEmbers(){
+  for(let i=0;i<18;i++){
+    const e=document.createElement("div"); e.className="ember";
+    e.style.left = Math.random()*100+"vw";
+    e.style.setProperty("--dx",(Math.random()*80-40)+"px");
+    e.style.animationDuration = (9+Math.random()*9)+"s";
+    e.style.animationDelay = (-Math.random()*16)+"s";
+    const sc = .6+Math.random()*1.1; e.style.width=e.style.height=(6*sc)+"px";
+    document.body.appendChild(e);
+  }
+  const g=document.getElementById("rayg");
+  for(let i=0;i<16;i++){
+    const a=i*22.5;
+    g.insertAdjacentHTML("beforeend",
+      `<path d="M100 100 L${100+Math.cos(a*Math.PI/180)*140} ${100+Math.sin(a*Math.PI/180)*140} L${100+Math.cos((a+7)*Math.PI/180)*140} ${100+Math.sin((a+7)*Math.PI/180)*140} Z" fill="#FFC93C" opacity=".5"/>`);
+  }
+}
+
+function renderMon(host, stage){ host.innerHTML = monSVG(stage); }
+
+function renderTasks(){
+  const box = document.getElementById("tasks");
+  const isToday = selected === todayISO();
+  const future = dayDiff(todayISO(), selected) > 0;
+  document.getElementById("dayTitle").textContent =
+    isToday ? "Heute · " + fmtDE(selected) : "Tag " + (dayDiff(S.start,selected)+1) + " · " + fmtDE(selected);
+  document.getElementById("backToday").hidden = isToday;
+
+  box.innerHTML = CONFIG.tasks.map(t=>{
+    const on = !!dayOf(selected)[t.key];
+    return `<button class="task ${on?"done":""}" data-k="${t.key}" ${future?"disabled":""} aria-pressed="${on}">
+      <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="${t.color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${t.ico}</svg></span>
+      <span class="txt">${t.label}<small>${t.hint}</small></span>
+      <span class="box"><svg viewBox="0 0 100 100"><path class="fl" d="${FLAME}"/></svg></span>
+    </button>`;
+  }).join("");
+}
+
+function renderWeeks(){
+  const host = document.getElementById("weeks");
+  const weeks = Math.ceil(CONFIG.daysTotal/7);
+  let html = "";
+  for(let w=0; w<weeks; w++){
+    let orbs = "";
+    for(let i=0;i<7;i++){
+      const idx = w*7+i, iso = addDays(S.start, idx), diff = dayDiff(todayISO(), iso);
+      const full = isFull(iso), part = !full && CONFIG.tasks.some(t=>dayOf(iso)[t.key]);
+      const cls = [ "orb", full?"full":"", part?"part":"", diff===0?"today":"", diff>0?"future":"", iso===selected?"sel":"" ].join(" ");
+      orbs += `<button class="${cls}" data-iso="${iso}" ${diff>0?"disabled":""} aria-label="Tag ${idx+1}">${full?"":idx+1}</button>`;
+    }
+    const done = [0,1,2,3,4,5,6].every(i=>isFull(addDays(S.start,w*7+i)));
+    const claimed = S.rewards[w];
+    html += `<div class="week">
+      <p class="wlabel">Woche ${w+1} · ${CONFIG.stages[Math.min(w,CONFIG.stages.length-1)].rank}</p>
+      <div class="orbs">${orbs}</div>
+      <div class="reward ${claimed?"claimed":""}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#FFC93C" stroke-width="2" stroke-linejoin="round">
+          <rect x="3" y="8" width="18" height="12.5" rx="2"/><path d="M3 12h18M12 8v12.5"/>
+          <path d="M12 8S10.5 3.5 8 4.2 8.8 8 12 8zM12 8s1.5-4.5 4-3.8S15.2 8 12 8z"/></svg>
+        <span>${claimed ? "Abgeholt: "+CONFIG.rewardText : CONFIG.rewardText + (done ? " — freigeschaltet!" : " — am Ende der Woche")}</span>
+      </div>
+    </div>`;
+  }
+  host.innerHTML = html;
+}
+
+function renderHUD(anim){
+  const n = orbCount(), st = stageOf(n);
+  const inStage = Math.min(CONFIG.orbsPerStage, n - st*CONFIG.orbsPerStage);
+  const last = st === CONFIG.stages.length-1;
+  document.getElementById("orbCount").textContent = n + " / " + CONFIG.daysTotal;
+  const f = document.getElementById("fill");
+  f.style.width = (last ? 100 : (inStage/CONFIG.orbsPerStage)*100) + "%";
+  if(anim){ f.classList.remove("pulse"); void f.offsetWidth; f.classList.add("pulse"); }
+  const left = CONFIG.orbsPerStage - inStage;
+  document.getElementById("hudNote").textContent = last
+    ? "Endstufe erreicht. Jeder weitere Orb ist ein Ehren-Orb."
+    : (left === 1 ? "Noch 1 Orb bis zur Entwicklung!" : "Noch " + left + " Orbs bis zur Entwicklung");
+  document.getElementById("monName").textContent = CONFIG.stages[st].name;
+  document.getElementById("monRank").textContent = CONFIG.stages[st].rank;
+  document.getElementById("who").textContent = S.name ? S.name : "Trainer";
+  document.getElementById("rays").classList.toggle("on", last);
+}
+
+function renderAll(anim){
+  renderTasks(); renderWeeks(); renderHUD(anim);
+  const st = stageOf(orbCount());
+  const host = document.getElementById("monHost");
+  if(host.dataset.stage !== String(st)){ renderMon(host, st); host.dataset.stage = String(st); }
+}
+
+/* =========================================================================
+   Effekte
+   ========================================================================= */
+function sparks(x,y,count=18,colors=["#FFC93C","#FF7A18","#E62E0B","#FFE9A8"]){
+  for(let i=0;i<count;i++){
+    const s=document.createElement("div"); s.className="spark";
+    const size=5+Math.random()*8;
+    s.style.width=s.style.height=size+"px";
+    s.style.left=x+"px"; s.style.top=y+"px";
+    s.style.background=colors[i%colors.length];
+    s.style.boxShadow="0 0 10px "+colors[i%colors.length];
+    document.body.appendChild(s);
+    const ang=Math.random()*Math.PI*2, dist=50+Math.random()*130;
+    s.animate([
+      {transform:"translate(-50%,-50%) scale(1)",opacity:1},
+      {transform:`translate(${Math.cos(ang)*dist-8}px, ${Math.sin(ang)*dist-8}px) scale(0)`,opacity:0}
+    ],{duration:650+Math.random()*500,easing:"cubic-bezier(.2,.7,.3,1)"}).onfinish=()=>s.remove();
+  }
+}
+let toastT;
+function toast(msg){
+  const t=document.getElementById("toast"); t.textContent=msg; t.classList.add("on");
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("on"),2200);
+}
+function flyOrb(fromEl){
+  const a = fromEl.getBoundingClientRect();
+  const b = document.querySelector("#monHost .mon").getBoundingClientRect();
+  const o = document.createElement("div");
+  o.className="spark";
+  o.style.cssText += ";width:34px;height:34px;left:"+(a.left+a.width/2)+"px;top:"+(a.top+a.height/2)+
+    "px;background:radial-gradient(circle at 34% 30%,#FFE9A8,#FFC93C 42%,#FF7A18 74%,#E62E0B);box-shadow:0 0 26px #FF9A22";
+  document.body.appendChild(o);
+  o.animate([
+    {transform:"translate(-50%,-50%) scale(.4)",opacity:0},
+    {transform:"translate(-50%,-50%) scale(1.15)",opacity:1,offset:.25},
+    {transform:`translate(${b.left+b.width/2-(a.left+a.width/2)-17}px, ${b.top+b.height*.55-(a.top+a.height/2)-17}px) scale(.5)`,opacity:.9}
+  ],{duration:900,easing:"cubic-bezier(.4,0,.2,1)"}).onfinish=()=>{
+    o.remove();
+    sparks(b.left+b.width/2, b.top+b.height*.55, 24);
+    const mon=document.querySelector("#monHost .mon");
+    mon.classList.remove("happy"); void mon.offsetWidth; mon.classList.add("happy");
+    renderHUD(true);
+  };
+}
+
+/* =========================================================================
+   Entwicklung
+   ========================================================================= */
+function evolve(from, to){
+  const evo=document.getElementById("evo"), host=document.getElementById("evoHost");
+  const title=document.getElementById("evoTitle"), sub=document.getElementById("evoSub"), btn=document.getElementById("evoBtn");
+  title.classList.remove("on"); sub.classList.remove("on"); btn.classList.remove("on");
+  document.querySelector(".evostage").classList.remove("glow");
+  renderMon(host, from); evo.classList.add("on");
+  sCharge();
+  let step=0;
+  const pulse=()=>{
+    const mon=host.querySelector(".mon");
+    step++;
+    mon.classList.add("silhouette","shakeit");
+    mon.animate([{transform:"scale(1)"},{transform:"scale(1.14)"},{transform:"scale(1)"}],{duration:340,easing:"ease-in-out"});
+    tone(300+step*90,.14,"square",0,.12);
+    setTimeout(()=>{ mon.classList.remove("shakeit"); if(step<5){ setTimeout(pulse, 190); } else { finish(); } }, 340);
+  };
+  const finish=()=>{
+    document.getElementById("flash").classList.remove("go"); void document.getElementById("flash").offsetWidth;
+    document.getElementById("flash").classList.add("go");
+    setTimeout(()=>{
+      renderMon(host, to);
+      document.querySelector('.evostage').classList.add('glow');
+      const r=host.getBoundingClientRect();
+      sparks(r.left+r.width/2, r.top+r.height/2, 46);
+      title.classList.add("on");
+      sub.textContent = CONFIG.stages[to].name + " · " + CONFIG.stages[to].line;
+      sub.classList.add("on"); btn.classList.add("on");
+      sFan();
+    },170);
+  };
+  setTimeout(pulse, 500);
+  btn.onclick = ()=>{ evo.classList.remove("on"); renderAll(); };
+}
+
+/* =========================================================================
+   Interaktion
+   ========================================================================= */
+document.getElementById("tasks").addEventListener("click", e=>{
+  const b = e.target.closest(".task"); if(!b || b.disabled) return;
+  const k = b.dataset.k;
+  const before = orbCount(), beforeStage = stageOf(before);
+  S.days[selected] = S.days[selected] || {};
+  S.days[selected][k] = !S.days[selected][k];
+  if(!S.days[selected][k]) delete S.days[selected][k];
+  S.days[selected]._t = Date.now();
+  save();
+
+  const full = isFull(selected);
+  b.classList.toggle("done", !!dayOf(selected)[k]);
+  b.setAttribute("aria-pressed", !!dayOf(selected)[k]);
+  if(dayOf(selected)[k]){
+    const r=b.getBoundingClientRect(); sparks(r.right-32, r.top+r.height/2, 10); sTap();
+  } else sUntap();
+
+  const after = orbCount();
+  renderWeeks();
+  if(after > before && full){
+    sOrb(); flyOrb(b); toast("Glut-Orb erspielt!");
+    const afterStage = stageOf(after);
+    if(afterStage > beforeStage){
+      setTimeout(()=>{ evolve(beforeStage, afterStage); S.stageSeen = afterStage; save(); }, 1500);
+    }
+  } else {
+    renderHUD(false);
+  }
+});
+
+document.getElementById("weeks").addEventListener("click", e=>{
+  const o = e.target.closest(".orb"); if(!o || o.disabled) return;
+  selected = o.dataset.iso; sTap(); renderAll();
+  document.getElementById("tasks").scrollIntoView({behavior:"smooth",block:"center"});
+});
+document.getElementById("backToday").onclick = ()=>{ selected = todayISO(); renderAll(); };
+
+/* Papa-Panel */
+const sheet=document.getElementById("sheet");
+document.getElementById("papaBtn").onclick = ()=>{
+  document.getElementById("nameIn").value = S.name || "";
+  document.getElementById("rewardRows").innerHTML = S.rewards.map((v,i)=>
+    `<label class="rewardrow"><input type="checkbox" data-w="${i}" ${v?"checked":""}> Woche ${i+1}: ${CONFIG.rewardText} übergeben</label>`).join("");
+  document.getElementById("importIn").value = "";
+  document.getElementById("syncUrl").value = SY.url || "";
+  document.getElementById("syncKey").value = SY.key || "";
+  document.getElementById("syncId").value  = SY.id  || "kind1";
+  sheet.classList.add("on");
+};
+document.getElementById("closeBtn").onclick = ()=> sheet.classList.remove("on");
+sheet.addEventListener("click", e=>{ if(e.target===sheet) sheet.classList.remove("on"); });
+document.getElementById("saveBtn").onclick = ()=>{
+  S.name = document.getElementById("nameIn").value.trim().slice(0,18);
+  document.querySelectorAll("#rewardRows input").forEach(c=> S.rewards[+c.dataset.w] = c.checked);
+  const imp = document.getElementById("importIn").value.trim();
+  if(imp){
+    try{
+      const o = JSON.parse(imp);
+      if(o && o.days){ S = Object.assign(S, o); toast("Daten übernommen"); }
+      else toast("Der Text passt nicht");
+    }catch(e){ toast("Der Text passt nicht"); }
+  }
+  S.metaT = Date.now();
+  SY.url = document.getElementById("syncUrl").value.trim();
+  SY.key = document.getElementById("syncKey").value.trim();
+  SY.id  = (document.getElementById("syncId").value.trim() || "kind1").toLowerCase().replace(/[^a-z0-9_-]/g,"");
+  saveSyncCfg();
+  syncStatus(syncOn() ? "busy" : "off", syncOn() ? "" : "Abgleich ist aus");
+  save(); renderAll(); sheet.classList.remove("on");
+  if(syncOn()) doSync();
+};
+
+/* Gerät 2 einrichten: Link mit Adresse und Schlüssel */
+document.getElementById("linkBtn").onclick = async ()=>{
+  const url = document.getElementById("syncUrl").value.trim();
+  const key = document.getElementById("syncKey").value.trim();
+  const id  = document.getElementById("syncId").value.trim() || "kind1";
+  if(!url || !key) return toast("Erst Adresse und Schlüssel eintragen");
+  const link = location.origin + location.pathname + "#sync=" + b64u(JSON.stringify({u:url,k:key,i:id}));
+  try{ await navigator.clipboard.writeText(link); toast("Link kopiert - auf Gerät 2 öffnen"); }
+  catch(e){ document.getElementById("importIn").value = link; toast("Link steht unten zum Kopieren"); }
+};
+document.getElementById("syncNow").onclick = ()=>{
+  if(!syncOn()) return toast("Noch keine Sync-Adresse eingetragen");
+  doSync().then(()=> toast("Abgleich versucht"));
+};
+
+/* Sicherungsdatei */
+document.getElementById("backupBtn").onclick = ()=>{
+  const blob = new Blob([JSON.stringify(S,null,2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "glut-arena-" + todayISO() + ".json";
+  a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
+  toast("Sicherung gespeichert");
+};
+document.getElementById("restoreBtn").onclick = ()=> document.getElementById("restoreIn").click();
+document.getElementById("restoreIn").onchange = e=>{
+  const f = e.target.files && e.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = ()=>{
+    try{
+      const o = JSON.parse(r.result);
+      if(!o || !o.days) return toast("Das ist keine Sicherung");
+      if(!confirm("Sicherung vom " + (f.lastModifiedDate ? f.lastModifiedDate.toLocaleDateString("de-DE") : "?") + " laden? Der aktuelle Stand wird zusammengeführt.")) return;
+      mergeRemote(o); save(); renderAll(); sheet.classList.remove("on"); toast("Sicherung geladen");
+    }catch(err){ toast("Datei konnte nicht gelesen werden"); }
+  };
+  r.readAsText(f); e.target.value = "";
+};
+document.getElementById("exportBtn").onclick = async ()=>{
+  const txt = JSON.stringify(S);
+  try{ await navigator.clipboard.writeText(txt); toast("In die Zwischenablage kopiert"); }
+  catch(e){ document.getElementById("importIn").value = txt; toast("Text unten zum Kopieren"); }
+};
+document.getElementById("resetBtn").onclick = ()=>{
+  const w = prompt('Alles löschen? Dann tippe RESET ein.');
+  if(w && w.trim().toUpperCase() === "RESET"){
+    S = { name:"", start:todayISO(), days:{}, rewards:[false,false,false], stageSeen:0, muted:S.muted };
+    selected = todayISO(); save(); renderAll(); sheet.classList.remove("on"); toast("Neu gestartet");
+  }
+};
+
+/* Ton */
+const soundBtn=document.getElementById("soundBtn");
+function soundIcon(){
+  soundBtn.innerHTML = S.muted
+    ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M17 9l4 6M21 9l-4 6"/></svg>'
+    : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 6a9 9 0 0 1 0 12"/></svg>';
+}
+soundBtn.onclick = ()=>{ S.muted = !S.muted; save(); soundIcon(); if(!S.muted) sTap(); };
+
+/* Start */
+load();
+if(dayDiff(S.start, todayISO()) < 0) S.start = todayISO();
+selected = todayISO();
+document.getElementById("brand").firstChild.textContent = CONFIG.arenaName;
+buildEmbers(); soundIcon();
+loadSync(); applyHashConfig();
+renderAll();
+syncStatus(syncOn() ? "busy" : "off", syncOn() ? "" : "Abgleich ist aus - Stand liegt nur auf diesem Gerät");
+document.getElementById("syncBtn").onclick = ()=>{
+  if(!syncOn()) return toast("Abgleich ist aus. Einrichtung im Papa-Bereich.");
+  doSync();
+};
+if(syncOn()){
+  doSync();
+  setInterval(doSync, 60000);
+  document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) doSync(); });
+  window.addEventListener("online", doSync);
+}
+S.stageSeen = stageOf(orbCount()); save();
+
+/* Tag wechselt, während die Seite offen ist */
+let lastDay = todayISO();
+setInterval(()=>{ const t=todayISO(); if(t!==lastDay){ lastDay=t; selected=t; renderAll(); } }, 60000);
+</script>
+</body>
+</html>

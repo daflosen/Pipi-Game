@@ -1,0 +1,13 @@
+Eigene Figuren
+
+Lege hier drei Bilder ab, zum Beispiel stufe1.png, stufe2.png, stufe3.png,
+und trage sie oben in index.html bei CONFIG.stages ein:
+
+  { name:"...", rank:"...", line:"...", img:"bilder/stufe1.png" }
+
+Was gut funktioniert:
+- PNG oder SVG mit durchsichtigem Hintergrund
+- etwa 600 Pixel hoch, Figur steht unten im Bild auf
+- alle drei Bilder gleich hoch, dann wackelt beim Wechsel nichts
+
+Bleibt img leer, zeichnet das Spiel seine eigene Figur.
