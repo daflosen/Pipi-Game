@@ -39,9 +39,14 @@ unten im Papa-Bereich einfügen und speichern.
 Hinter dem Zahnrad oben rechts:
 
 - Trainer-Name eintragen
+- Ersten Tag des Plans setzen (wenn ihr schon früher angefangen habt)
 - Belohnungen pro Woche als übergeben markieren
 - Spielstand kopieren oder einfügen
 - Zurücksetzen (Sicherheitsabfrage: `RESET` tippen)
+
+Vergangene Tage lassen sich jederzeit nachtragen: unten im Wochenraster den grauen Orb antippen,
+Aufgaben abhaken, dann *Zurück zu heute*. Zukünftige Tage sind gesperrt. Einträge hängen am
+Kalenderdatum — wer das Startdatum verschiebt, ändert nur die Nummerierung, nicht die Einträge.
 
 ## Anpassen
 

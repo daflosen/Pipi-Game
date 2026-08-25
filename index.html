@@ -296,6 +296,14 @@ img.mon{object-fit:contain;max-width:100%}
       <input id="nameIn" maxlength="18" placeholder="z.B. Max" autocomplete="off">
     </div>
 
+    <div class="field">
+      <label for="startIn">Erster Tag des Plans</label>
+      <input id="startIn" type="date">
+      <p style="font-size:11.5px;color:#9C8BC8;margin:6px 0 0;line-height:1.45">
+        Zurücksetzen, wenn ihr schon früher angefangen habt. Bereits eingetragene Tage bleiben an
+        ihrem Datum kleben, nur die Nummerierung verschiebt sich.</p>
+    </div>
+
     <label style="display:block;font-size:11px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:#B49CE0;margin-bottom:2px">Belohnungen</label>
     <div id="rewardRows"></div>
 
@@ -473,6 +481,12 @@ const dayOf = iso => S.days[iso] || {};
 const isFull = iso => CONFIG.tasks.every(t => dayOf(iso)[t.key]);
 const orbCount = () => Object.keys(S.days).filter(isFull).length;
 const stageOf = n => Math.min(CONFIG.stages.length-1, Math.floor(n / CONFIG.orbsPerStage));
+/* Normalerweise drei Wochen - liegt der Start weiter zurück, wächst das Raster mit,
+   damit der heutige Tag immer sichtbar und antippbar bleibt. */
+const weekCount = () => Math.max(
+  Math.ceil(CONFIG.daysTotal/7),
+  Math.ceil((dayDiff(S.start, todayISO())+1)/7)
+);
 
 /* =========================================================================
    Töne - kleine Oszillatoren, keine Dateien
@@ -648,7 +662,7 @@ function renderTasks(){
 
 function renderWeeks(){
   const host = document.getElementById("weeks");
-  const weeks = Math.ceil(CONFIG.daysTotal/7);
+  const weeks = weekCount();
   let html = "";
   for(let w=0; w<weeks; w++){
     let orbs = "";
@@ -659,7 +673,7 @@ function renderWeeks(){
       orbs += `<button class="${cls}" data-iso="${iso}" ${diff>0?"disabled":""} aria-label="Tag ${idx+1}">${full?"":idx+1}</button>`;
     }
     const done = [0,1,2,3,4,5,6].every(i=>isFull(addDays(S.start,w*7+i)));
-    const claimed = S.rewards[w];
+    const claimed = !!S.rewards[w];
     html += `<div class="week">
       <p class="wlabel">Woche ${w+1} · ${CONFIG.stages[Math.min(w,CONFIG.stages.length-1)].rank}</p>
       <div class="orbs">${orbs}</div>
@@ -825,7 +839,9 @@ document.getElementById("backToday").onclick = ()=>{ selected = todayISO(); rend
 const sheet=document.getElementById("sheet");
 document.getElementById("papaBtn").onclick = ()=>{
   document.getElementById("nameIn").value = S.name || "";
-  document.getElementById("rewardRows").innerHTML = S.rewards.map((v,i)=>
+  document.getElementById("startIn").value = S.start;
+  document.getElementById("startIn").max = todayISO();
+  document.getElementById("rewardRows").innerHTML = Array.from({length:weekCount()},(_,i)=>!!S.rewards[i]).map((v,i)=>
     `<label class="rewardrow"><input type="checkbox" data-w="${i}" ${v?"checked":""}> Woche ${i+1}: ${CONFIG.rewardText} übergeben</label>`).join("");
   document.getElementById("importIn").value = "";
   document.getElementById("syncUrl").value = SY.url || "";
@@ -846,6 +862,8 @@ document.getElementById("saveBtn").onclick = ()=>{
       else toast("Der Text passt nicht");
     }catch(e){ toast("Der Text passt nicht"); }
   }
+  const st = document.getElementById("startIn").value;
+  if(/^\d{4}-\d{2}-\d{2}$/.test(st) && dayDiff(st, todayISO()) >= 0) S.start = st;
   S.metaT = Date.now();
   SY.url = document.getElementById("syncUrl").value.trim();
   SY.key = document.getElementById("syncKey").value.trim();
