@@ -100,7 +100,18 @@ img.mon{object-fit:contain;max-width:100%}
 .hudnote{font-size:12.5px;font-weight:700;color:#D9CCF5;margin-top:7px}
 
 /* ---------- Aufgaben ---------- */
-.daybar{display:flex;align-items:center;gap:8px;margin:18px 0 10px}
+.daybar{display:flex;align-items:center;gap:8px;margin:18px 0 10px;padding:0;border:2px solid transparent;border-radius:14px;transition:.2s}
+.daybar.other{background:rgba(22,192,176,.16);border-color:rgba(22,192,176,.6);padding:9px 11px}
+.daybar.other h2{color:#8FF0E2}
+.daybar.other .pill{background:var(--aqua);border-color:#8FF0E2;color:#062621}
+.tasklist{position:relative}
+.tasklist.other{outline:3px dashed rgba(22,192,176,.6);outline-offset:9px;border-radius:20px}
+.backbig{
+  display:none;width:100%;margin-top:16px;font-family:inherit;font-weight:900;font-size:14px;
+  padding:13px;border-radius:14px;border:2px solid var(--aqua);background:rgba(22,192,176,.18);color:#8FF0E2;cursor:pointer
+}
+.tasklist.other + .backbig{display:block}
+.weekhint{font-size:12px;color:#B49CE0;text-align:center;margin:2px 2px 14px;line-height:1.45}
 .daybar h2{font-family:"Bungee",cursive;font-size:14px;margin:0;flex:1;letter-spacing:.03em}
 .pill{font-size:11px;font-weight:900;background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.2);
   border-radius:999px;padding:5px 11px;color:var(--paper);cursor:pointer}
@@ -140,7 +151,7 @@ img.mon{object-fit:contain;max-width:100%}
   border-color:#FFDFA0;color:#5B2408;box-shadow:0 0 12px rgba(255,150,40,.55)}
 .orb.today{outline:3px solid var(--aqua);outline-offset:2px}
 .orb.future{opacity:.35;cursor:default}
-.orb.sel{transform:scale(1.12)}
+.orb.sel{transform:scale(1.12);box-shadow:0 0 0 3px var(--aqua), 0 0 14px rgba(22,192,176,.7)}
 
 /* ---------- Belohnung ---------- */
 .reward{
@@ -281,7 +292,9 @@ img.mon{object-fit:contain;max-width:100%}
     <button class="pill" id="backToday" hidden>Zurück zu heute</button>
   </div>
   <div class="tasklist" id="tasks"></div>
+  <button class="backbig" id="backToday2">Fertig — zurück zu heute</button>
 
+  <p class="weekhint">Einen vergangenen Tag nachtragen? Unten seinen Kreis antippen.</p>
   <div class="weeks" id="weeks"></div>
 </div>
 
@@ -647,8 +660,11 @@ function renderTasks(){
   const isToday = selected === todayISO();
   const future = dayDiff(todayISO(), selected) > 0;
   document.getElementById("dayTitle").textContent =
-    isToday ? "Heute · " + fmtDE(selected) : "Tag " + (dayDiff(S.start,selected)+1) + " · " + fmtDE(selected);
+    isToday ? "Heute · " + fmtDE(selected)
+            : "Nachtragen: " + fmtDE(selected) + " (Tag " + (dayDiff(S.start,selected)+1) + ")";
   document.getElementById("backToday").hidden = isToday;
+  document.querySelector(".daybar").classList.toggle("other", !isToday);
+  box.classList.toggle("other", !isToday);
 
   box.innerHTML = CONFIG.tasks.map(t=>{
     const on = !!dayOf(selected)[t.key];
@@ -831,9 +847,12 @@ document.getElementById("tasks").addEventListener("click", e=>{
 document.getElementById("weeks").addEventListener("click", e=>{
   const o = e.target.closest(".orb"); if(!o || o.disabled) return;
   selected = o.dataset.iso; sTap(); renderAll();
-  document.getElementById("tasks").scrollIntoView({behavior:"smooth",block:"center"});
+  document.querySelector(".daybar").scrollIntoView({behavior:"smooth",block:"start"});
 });
-document.getElementById("backToday").onclick = ()=>{ selected = todayISO(); renderAll(); };
+const backToToday = ()=>{ selected = todayISO(); renderAll();
+  document.querySelector(".daybar").scrollIntoView({behavior:"smooth", block:"center"}); };
+document.getElementById("backToday").onclick = backToToday;
+document.getElementById("backToday2").onclick = backToToday;
 
 /* Papa-Panel */
 const sheet=document.getElementById("sheet");
